@@ -3,7 +3,6 @@
 
 const { Clutter, Gio, GLib, GObject, Pango, Cinnamon, St } = imports.gi;
 
-// const Animation = imports.ui.animation;
 const CheckBox = imports.ui.checkBox;
 const Dialog = imports.ui.dialog;
 const Main = imports.ui.main;
@@ -15,7 +14,6 @@ const CinnamonEntry = imports.ui.cinnamonEntry;
 const Util = imports.misc.util;
 
 var LIST_ITEM_ICON_SIZE = 48;
-var WORK_SPINNER_ICON_SIZE = 16;
 
 const REMEMBER_MOUNT_PASSWORD_KEY = 'remember-mount-password';
 
@@ -379,17 +377,10 @@ var CinnamonMountPasswordDialog = GObject.registerClass({
         this.setInitialKeyFocus(this._passwordEntry);
         CinnamonEntry.addContextMenu(this._passwordEntry);
 
-        // this._workSpinner = new Animation.Spinner(WORK_SPINNER_ICON_SIZE, {
-        //     animate: true,
-        // });
-
-        if (rtl) {
-            // passwordGridLayout.attach(this._workSpinner, 0, curGridRow, 1, 1);
+        if (rtl)
             passwordGridLayout.attach(this._passwordEntry, 1, curGridRow, 1, 1);
-        } else {
+        else
             passwordGridLayout.attach(this._passwordEntry, 0, curGridRow, 1, 1);
-            // passwordGridLayout.attach(this._workSpinner, 1, curGridRow, 1, 1);
-        }
         curGridRow += 1;
 
         let warningBox = new St.BoxLayout({ vertical: true });
@@ -409,14 +400,14 @@ var CinnamonMountPasswordDialog = GObject.registerClass({
 
         content.add_child(passwordGrid);
 
-        // if (flags & Gio.AskPasswordFlags.SAVING_SUPPORTED) {
-        //     this._rememberChoice = new CheckBox.CheckBox(_("Remember Password"));
-        //     // this._rememberChoice.checked =
-        //         // global.settings.get_boolean(REMEMBER_MOUNT_PASSWORD_KEY);
-        //     content.add_child(this._rememberChoice);
-        // } else {
-        //     this._rememberChoice = null;
-        // }
+        if (flags & Gio.AskPasswordFlags.SAVING_SUPPORTED) {
+            this._rememberChoice = new CheckBox.CheckBox(_("Remember Password"));
+            this._rememberChoice.checked =
+                global.settings.get_boolean(REMEMBER_MOUNT_PASSWORD_KEY);
+            content.add_child(this._rememberChoice);
+        } else {
+            this._rememberChoice = null;
+        }
 
         this.contentLayout.add_child(content);
 
@@ -452,15 +443,16 @@ var CinnamonMountPasswordDialog = GObject.registerClass({
     }
 
     reaskPassword() {
-        // this._workSpinner.stop();
+        this._passwordEntry.end_busy();
         this._passwordEntry.set_text('');
-        this._errorMessageLabel.text = _('Sorry, that didn’t work. Please try again.');
+        this._errorMessageLabel.text = _('Please try again');
         this._errorMessageLabel.opacity = 255;
 
         Util.wiggle(this._passwordEntry);
     }
 
     _onCancelButton() {
+        this._passwordEntry.end_busy();
         this.emit('response', -1, '', false, false, false, 0);
     }
 
@@ -483,10 +475,10 @@ var CinnamonMountPasswordDialog = GObject.registerClass({
             this._errorMessageLabel.opacity = 0;
         }
 
-        // global.settings.set_boolean(REMEMBER_MOUNT_PASSWORD_KEY,
-        //     this._rememberChoice && this._rememberChoice.checked);
+        global.settings.set_boolean(REMEMBER_MOUNT_PASSWORD_KEY,
+            this._rememberChoice && this._rememberChoice.checked);
 
-        // this._workSpinner.play();
+        this._passwordEntry.start_busy();
         this.emit('response', 1,
             this._passwordEntry.get_text(),
             this._rememberChoice &&
